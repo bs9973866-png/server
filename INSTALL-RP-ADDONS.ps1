@@ -1,6 +1,6 @@
 $ErrorActionPreference = "Stop"
 
-# Installs only the two RP addons selected for Paper 26.2.
+# Installs the automatic human-NPC engine and vehicle addon for Paper 26.2.
 # Run from the extracted server repository folder, with the server stopped.
 
 $ServerRoot = Split-Path -Parent $MyInvocation.MyCommand.Path
@@ -35,9 +35,10 @@ function Install-ModrinthPlugin([string]$Project, [string]$DisplayName) {
     Write-Host "Installed $DisplayName $($Version.version_number): $Destination" -ForegroundColor Green
 }
 
-Install-ModrinthPlugin "npc-plugin" "NPC Plugin"
+Install-ModrinthPlugin "nWsAIWES" "NPCS human NPC engine"
 Install-ModrinthPlugin "2CrfFJyk" "Mercedex Car Plugin"
 
 Write-Host ""
 Write-Host "Addons downloaded. Put the freshly built NewYorkRP.jar in plugins too, then start the server." -ForegroundColor Green
-Write-Host "See INSTALL-CITY-WORLD.md for the large New York map and NPC setup." -ForegroundColor Cyan
+Write-Host "Human NPCs are created automatically by NewYorkRP around the world spawn. No manual NPC setup is needed." -ForegroundColor Cyan
+Write-Host "See INSTALL-CITY-WORLD.md for importing the large New York map." -ForegroundColor Cyan
