@@ -14,6 +14,8 @@ A server-side roleplay plugin. Players do not install client mods.
 - `/work` — complete a work shift (cooldown applies).
 - `/wallet` — check money.
 - `/pay <player> <amount>` — transfer money.
+- `/car spawn <sedan|sport|suv|taxi|police>` — buy and spawn a driveable car.
+- `/car fuel` — check fuel; `/car refuel` — refill for $50; `/car store` — remove your car.
 - `/nycity generate` — admin command for the starter district.
 
 ## Resource pack delivery
@@ -27,4 +29,4 @@ For players outside the host PC:
 Do not publish a private address or share your public IP in public chat. The first pack is a valid starter pack; custom city models, textures and sounds are planned for later iterations.
 
 ## Current prototype scope
-Includes a basic economy, jobs, starter NPC interactions, pack delivery and an experimental district command. It is not yet a complete GTA-scale city: vehicle systems, interiors, missions, phone UI, advanced NPC schedules and a polished custom resource pack remain future development.
+Includes a basic economy, jobs, starter NPC interactions, pack delivery and an experimental district command. It is not yet a complete GTA-scale city: interiors, missions, phone UI, advanced NPC schedules and a polished custom resource pack remain future development. The first vehicle prototype uses an invisible steerable pig with visible block-display body parts; hold a carrot on a stick and look in the direction you want to drive. It is a basic prototype, not realistic car physics.
