@@ -6,6 +6,8 @@ import org.bukkit.block.Biome;
 import org.bukkit.command.*;
 import org.bukkit.configuration.file.YamlConfiguration;
 import org.bukkit.entity.*;
+import org.bukkit.block.data.BlockData;
+import org.bukkit.util.Vector;
 import org.bukkit.event.EventHandler;
 import org.bukkit.event.Listener;
 import org.bukkit.event.player.PlayerInteractEntityEvent;
@@ -30,6 +32,7 @@ public final class Main extends JavaPlugin implements Listener, TabExecutor {
     private File dataFile;
     private HttpServer packServer;
     private File packFile;
+    private final Map<UUID, VehicleData> vehicles = new ConcurrentHashMap<>();
 
     @Override public void onEnable() {
         saveDefaultConfig();
@@ -42,7 +45,7 @@ public final class Main extends JavaPlugin implements Listener, TabExecutor {
                 jobs.put(id, data.getString(key + ".job", "Безработный"));
             } catch (IllegalArgumentException ignored) {}
         }
-        for (String cmd : List.of("ny", "nycity", "job", "work", "wallet", "pay")) {
+        for (String cmd : List.of("ny", "nycity", "job", "work", "wallet", "pay", "car")) {
             Objects.requireNonNull(getCommand(cmd)).setExecutor(this);
             Objects.requireNonNull(getCommand(cmd)).setTabCompleter(this);
         }
@@ -57,6 +60,8 @@ public final class Main extends JavaPlugin implements Listener, TabExecutor {
 
     @Override public void onDisable() {
         savePlayers();
+        for (VehicleData vehicle : vehicles.values()) removeVehicleEntities(vehicle);
+        vehicles.clear();
         if (packServer != null) packServer.stop(0);
     }
 
@@ -163,6 +168,7 @@ public final class Main extends JavaPlugin implements Listener, TabExecutor {
             sender.sendMessage("§b/job §7— профессии: taxi, medic, police, mechanic, courier");
             sender.sendMessage("§b/work §7— рабочая смена    §b/wallet §7— баланс");
             sender.sendMessage("§b/pay <игрок> <сумма> §7— перевод денег");
+            sender.sendMessage("§b/car §7— машины: /car spawn <sedan|sport|suv|taxi|police>, /car fuel, /car refuel, /car store");
             sender.sendMessage("§b/nycity generate §7— построить стартовый район (админ)");
             return true;
         }
@@ -194,6 +200,7 @@ public final class Main extends JavaPlugin implements Listener, TabExecutor {
             balances.merge(p.getUniqueId(), reward, Integer::sum); lastWork.put(p.getUniqueId(),now); savePlayers();
             p.sendMessage("§aСмена завершена: §e+$" + reward + " §7(" + job + ")"); return true;
         }
+        if (c.equals("car")) return handleCarCommand(p, args);
         if (c.equals("pay")) {
             if (args.length != 2) { p.sendMessage("§cИспользование: /pay <игрок> <сумма>"); return true; }
             Player target=Bukkit.getPlayerExact(args[0]); int amount;
@@ -252,9 +259,149 @@ public final class Main extends JavaPlugin implements Listener, TabExecutor {
             w.getBlockAt(x+dx,y+height,z+dz).setType(Material.SMOOTH_STONE,false);
     }
 
+
+    // --- Driveable roleplay cars. The invisible pig is the vanilla steering controller;
+    // block displays provide a server-side model, so players need no client mods.
+    private static final class VehicleData {
+        final UUID owner;
+        final Pig driver;
+        final List<BlockDisplay> parts;
+        final String type;
+        int fuel = 100;
+        int tickCounter = 0;
+        VehicleData(UUID owner, Pig driver, List<BlockDisplay> parts, String type) {
+            this.owner = owner; this.driver = driver; this.parts = parts; this.type = type;
+        }
+    }
+
+    private boolean handleCarCommand(Player p, String[] args) {
+        UUID id = p.getUniqueId();
+        VehicleData current = vehicles.get(id);
+        if (args.length == 0) {
+            p.sendMessage("§bМашины NEW YORK RP");
+            p.sendMessage("§f/car spawn <sedan|sport|suv|taxi|police> §7— купить и создать машину");
+            p.sendMessage("§f/car fuel §7— остаток топлива");
+            p.sendMessage("§f/car refuel §7— заправить за $50");
+            p.sendMessage("§f/car store §7— убрать свою машину");
+            return true;
+        }
+        switch (args[0].toLowerCase(Locale.ROOT)) {
+            case "spawn" -> {
+                if (args.length < 2) { p.sendMessage("§eУкажи тип: sedan, sport, suv, taxi, police"); return true; }
+                if (current != null) { p.sendMessage("§cСначала убери текущую машину: /car store"); return true; }
+                String type = args[1].toLowerCase(Locale.ROOT);
+                Material body = switch (type) {
+                    case "sedan" -> Material.RED_CONCRETE;
+                    case "sport" -> Material.PURPLE_CONCRETE;
+                    case "suv" -> Material.GREEN_CONCRETE;
+                    case "taxi" -> Material.YELLOW_CONCRETE;
+                    case "police" -> Material.BLUE_CONCRETE;
+                    default -> null;
+                };
+                if (body == null) { p.sendMessage("§cНеизвестная модель. Доступно: sedan, sport, suv, taxi, police."); return true; }
+                if (type.equals("police") && !jobs.getOrDefault(id, "Безработный").equals("Полицейский")) {
+                    p.sendMessage("§cПолицейская машина доступна только сотрудникам полиции."); return true;
+                }
+                int price = switch (type) { case "sport" -> 1200; case "suv" -> 900; case "taxi", "police" -> 700; default -> 500; };
+                int balance = balances.getOrDefault(id, getConfig().getInt("economy.starting-balance", 500));
+                if (balance < price) { p.sendMessage("§cНе хватает денег. Цена: $" + price); return true; }
+                Location at = p.getLocation().clone().add(p.getLocation().getDirection().normalize().multiply(2));
+                at.setY(p.getWorld().getHighestBlockYAt(at) + 1);
+                Pig pig = p.getWorld().spawn(at, Pig.class, entity -> {
+                    entity.setInvisible(true); entity.setSilent(true); entity.setSaddle(true);
+                    entity.setCustomName("NEW YORK RP Vehicle"); entity.setCustomNameVisible(false);
+                    entity.setPersistent(true); entity.addScoreboardTag("nyrp_vehicle_controller");
+                });
+                List<BlockDisplay> parts = new ArrayList<>();
+                createCarPart(pig, parts, body, 0, 0.65, 0);
+                createCarPart(pig, parts, Material.LIGHT_BLUE_STAINED_GLASS, 0, 1.55, -0.05);
+                createCarPart(pig, parts, Material.BLACK_CONCRETE, -0.8, 0.15, 0.65);
+                createCarPart(pig, parts, Material.BLACK_CONCRETE, 0.8, 0.15, 0.65);
+                createCarPart(pig, parts, Material.BLACK_CONCRETE, -0.8, 0.15, -0.65);
+                createCarPart(pig, parts, Material.BLACK_CONCRETE, 0.8, 0.15, -0.65);
+                if (type.equals("taxi")) createCarPart(pig, parts, Material.WHITE_CONCRETE, 0, 2.15, 0);
+                if (type.equals("police")) createCarPart(pig, parts, Material.REDSTONE_BLOCK, 0, 2.15, 0);
+                VehicleData vehicle = new VehicleData(id, pig, parts, type);
+                vehicles.put(id, vehicle);
+                balances.put(id, balance - price); savePlayers();
+                p.getInventory().addItem(new ItemStack(Material.CARROT_ON_A_STICK));
+                pig.addPassenger(p);
+                p.sendMessage("§aМашина создана: §f" + type + " §7| Цена: $" + price + " | Топливо: 100%");
+                p.sendMessage("§7Управление: держи морковь на палке и смотри в сторону движения. ПКМ — ускорение.");
+                Bukkit.getScheduler().runTaskTimer(this, task -> {
+                    if (!pig.isValid() || !vehicles.containsKey(id) || vehicles.get(id) != vehicle) {
+                        task.cancel(); return;
+                    }
+                    vehicle.tickCounter++;
+                    if (vehicle.driver.getVelocity().lengthSquared() > 0.025 && vehicle.tickCounter % 20 == 0) {
+                        vehicle.fuel--;
+                        if (vehicle.fuel <= 0) {
+                            vehicle.fuel = 0; vehicle.driver.setVelocity(new Vector());
+                            Player owner = Bukkit.getPlayer(id);
+                            if (owner != null) owner.sendMessage("§cТопливо закончилось! Используй /car refuel.");
+                        }
+                    }
+                    updateCarParts(vehicle);
+                }, 1L, 1L);
+            }
+            case "fuel" -> {
+                if (current == null) p.sendMessage("§cУ тебя нет машины.");
+                else p.sendMessage("§eТопливо: " + current.fuel + "%");
+            }
+            case "refuel" -> {
+                if (current == null) { p.sendMessage("§cУ тебя нет машины."); return true; }
+                if (current.fuel >= 100) { p.sendMessage("§aБак уже полный."); return true; }
+                int balance = balances.getOrDefault(id, 0);
+                if (balance < 50) { p.sendMessage("§cЗаправка стоит $50."); return true; }
+                balances.put(id, balance - 50); current.fuel = 100; savePlayers();
+                p.sendMessage("§aМашина заправлена до 100% за $50.");
+            }
+            case "store" -> {
+                if (current == null) { p.sendMessage("§cУ тебя нет машины."); return true; }
+                removeVehicleEntities(current); vehicles.remove(id);
+                p.sendMessage("§aМашина убрана в гараж.");
+            }
+            default -> p.sendMessage("§eИспользуй /car для списка команд.");
+        }
+        return true;
+    }
+
+    private void createCarPart(Pig pig, List<BlockDisplay> parts, Material material, double x, double y, double z) {
+        BlockDisplay display = pig.getWorld().spawn(pig.getLocation(), BlockDisplay.class, entity -> {
+            entity.setBlock(material.createBlockData());
+            entity.setGravity(false); entity.setInvulnerable(true); entity.setPersistent(true);
+            entity.addScoreboardTag("nyrp_vehicle_part");
+        });
+        parts.add(display);
+        display.teleport(vehiclePartLocation(pig, x, y, z));
+    }
+
+    private Location vehiclePartLocation(Pig pig, double x, double y, double z) {
+        Location base = pig.getLocation();
+        double radians = Math.toRadians(base.getYaw());
+        double rx = x * Math.cos(radians) - z * Math.sin(radians);
+        double rz = x * Math.sin(radians) + z * Math.cos(radians);
+        return base.clone().add(rx, y, rz);
+    }
+
+    private void updateCarParts(VehicleData vehicle) {
+        double[][] offsets = {{0,0.65,0},{0,1.55,-0.05},{-0.8,0.15,0.65},{0.8,0.15,0.65},{-0.8,0.15,-0.65},{0.8,0.15,-0.65},{0,2.15,0}};
+        for (int i=0; i<vehicle.parts.size(); i++) {
+            double[] o = offsets[i];
+            vehicle.parts.get(i).teleport(vehiclePartLocation(vehicle.driver,o[0],o[1],o[2]));
+        }
+    }
+
+    private void removeVehicleEntities(VehicleData vehicle) {
+        if (vehicle.driver.isValid()) vehicle.driver.remove();
+        for (BlockDisplay part : vehicle.parts) if (part.isValid()) part.remove();
+    }
+
     @Override public List<String> onTabComplete(CommandSender sender, Command command, String alias, String[] args) {
         if (command.getName().equalsIgnoreCase("job") && args.length==1) return List.of("taxi","medic","police","mechanic","courier");
         if (command.getName().equalsIgnoreCase("nycity") && args.length==1) return List.of("generate");
+        if (command.getName().equalsIgnoreCase("car") && args.length==1) return List.of("spawn","fuel","refuel","store");
+        if (command.getName().equalsIgnoreCase("car") && args.length==2 && args[0].equalsIgnoreCase("spawn")) return List.of("sedan","sport","suv","taxi","police");
         return Collections.emptyList();
     }
 }
