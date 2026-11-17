@@ -21,7 +21,8 @@ if not exist "paper-26.2.jar" (
   )
 )
 
-if not exist "plugins\NpcPlugin-Paper-*.jar" (
+powershell.exe -NoProfile -ExecutionPolicy Bypass -Command "$p=Get-ChildItem -LiteralPath '%~dp0plugins' -Filter 'NpcPlugin-Paper-*.jar' -File -ErrorAction SilentlyContinue; if(-not $p){exit 1}else{exit 0}"
+if errorlevel 1 (
   echo Installing the required human NPC plugin...
   powershell.exe -NoProfile -ExecutionPolicy Bypass -File "%~dp0INSTALL-NPC-PLUGIN.ps1"
   if errorlevel 1 (
@@ -31,7 +32,9 @@ if not exist "plugins\NpcPlugin-Paper-*.jar" (
   )
 )
 
-if not exist "plugins\Mercedex*.jar" (
+powershell.exe -NoProfile -ExecutionPolicy Bypass -Command "$p=Get-ChildItem -LiteralPath '%~dp0plugins' -Filter '*Mercedex*.jar' -File -ErrorAction SilentlyContinue; if(-not $p){exit 1}else{exit 0}"
+if errorlevel 1 (
+  echo Installing the Mercedex car plugin...
   powershell.exe -NoProfile -ExecutionPolicy Bypass -File "%~dp0INSTALL-CAR-PLUGIN.ps1"
   if errorlevel 1 (
     echo [ERROR] Car plugin installation failed. Server was not started.
