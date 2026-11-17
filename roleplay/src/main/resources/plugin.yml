@@ -27,3 +27,6 @@ commands:
 permissions:
   newyorkrp.admin:
     default: op
+  car:
+    description: Spawn and manage your roleplay car
+    usage: /car
