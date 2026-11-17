@@ -35,7 +35,7 @@ if errorlevel 1 (
   exit /b 0
 )
 
-if not exist "world\\level.dat" (
+if not exist "world\level.dat" (
   echo Preparing the New York city world. This may take a few minutes...
   powershell.exe -NoProfile -ExecutionPolicy Bypass -File "%~dp0INSTALL-CITY-WORLD.ps1"
   if errorlevel 1 (
