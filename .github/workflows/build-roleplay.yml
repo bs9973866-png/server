@@ -1,0 +1,32 @@
+name: Build NEW YORK RP plugin
+
+on:
+  push:
+    paths:
+      - "roleplay/**"
+      - ".github/workflows/build-roleplay.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+      - name: Set up Java 25
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: "25"
+          cache: maven
+      - name: Build plugin
+        run: mvn -B -f roleplay/pom.xml clean package
+      - name: Upload plugin JAR
+        uses: actions/upload-artifact@v4
+        with:
+          name: NewYorkRP-Paper-26.2
+          path: roleplay/target/NewYorkRP.jar
+          if-no-files-found: error
