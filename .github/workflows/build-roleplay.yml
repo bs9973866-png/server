@@ -36,14 +36,40 @@ jobs:
     steps:
       - name: Checkout
         uses: actions/checkout@v4
-      - name: Download map archive
+      - name: Download map archive from its public download page
         if: ${{ hashFiles('maps/new-york-midtown-manhattan.zip') == '' }}
         run: |
-          python -m pip install --disable-pip-version-check yt-dlp
+          python -m pip install --disable-pip-version-check requests beautifulsoup4
           mkdir -p maps
-          python -m yt_dlp --no-warnings --no-progress --force-overwrites \
-            -o maps/new-york-midtown-manhattan.zip \
-            "https://www.mediafire.com/file/ijs4stj0ye1as1k/New-York-Midtown-Manhattan-by-BasVerhagen-2.9-MC1.19.4-ZIP.zip/file"
+          python - <<'PY'
+          import requests
+          from bs4 import BeautifulSoup
+          from pathlib import Path
+
+          page = "https://www.mediafire.com/file/ijs4stj0ye1as1k/New-York-Midtown-Manhattan-by-BasVerhagen-2.9-MC1.19.4-ZIP.zip/file"
+          session = requests.Session()
+          session.headers.update({"User-Agent": "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 Chrome/131.0.0.0 Safari/537.36"})
+          response = session.get(page, timeout=60)
+          response.raise_for_status()
+          soup = BeautifulSoup(response.text, "html.parser")
+          button = soup.find(id="downloadButton")
+          if not button or not button.get("href"):
+              raise SystemExit("MediaFire did not provide its public download link.")
+          url = button["href"]
+          download = session.get(url, stream=True, timeout=180)
+          download.raise_for_status()
+          content_type = download.headers.get("Content-Type", "").lower()
+          first = next(download.iter_content(1024 * 1024), b"")
+          if "text/html" in content_type or not first.startswith(b"PK"):
+              raise SystemExit(f"Download was not a ZIP archive (Content-Type: {content_type}).")
+          target = Path("maps/new-york-midtown-manhattan.zip")
+          with target.open("wb") as f:
+              f.write(first)
+              for chunk in download.iter_content(1024 * 1024):
+                  if chunk:
+                      f.write(chunk)
+          print(f"Downloaded {target} ({target.stat().st_size} bytes)")
+          PY
       - name: Verify Minecraft world archive
         if: ${{ hashFiles('maps/new-york-midtown-manhattan.zip') != '' }}
         run: |
