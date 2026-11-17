@@ -19,6 +19,19 @@
 
 Для отдельной загрузки Paper можно запустить `DOWNLOAD-PAPER.bat`.
 
+## NEW YORK RP
+
+- Плагин экономики и городского меню собирается через GitHub Actions.
+- Человеческие NPC устанавливаются отдельным NPC Plugin: скины, редактор, пути и действия по ПКМ.
+- Автомобили устанавливаются отдельным Mercedex Car Plugin: модели, четыре места и ресурспак.
+- Установка этих двух аддонов: запусти `INSTALL-RP-ADDONS.bat` при выключенном сервере.
+- Инструкция по NPC и автомобилям: [roleplay/ADDONS.md](roleplay/ADDONS.md).
+- Большая карта Нью-Йорка (20 км²) и инструкция по замене мира: [INSTALL-CITY-WORLD.md](INSTALL-CITY-WORLD.md).
+
+После установки аддонов скачай свежий артефакт `NewYorkRP-Paper-26.2` из [GitHub Actions](https://github.com/bs9973866-png/server/actions) и положи `NewYorkRP.jar` в `plugins/`.
+
+**Важно:** не оставляй старые версии NewYorkRP в `plugins/`. Сделай резервную копию мира перед заменой карты.
+
 ## Настройки
 
 - `server.properties` — основные настройки сервера.
