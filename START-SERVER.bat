@@ -31,6 +31,15 @@ if not exist "plugins\NpcPlugin-Paper-*.jar" (
   )
 )
 
+if not exist "plugins\Mercedex*.jar" (
+  powershell.exe -NoProfile -ExecutionPolicy Bypass -File "%~dp0INSTALL-CAR-PLUGIN.ps1"
+  if errorlevel 1 (
+    echo [ERROR] Car plugin installation failed. Server was not started.
+    pause
+    exit /b 1
+  )
+)
+
 if not exist "eula.txt" (
   echo eula=false>"eula.txt"
 )
