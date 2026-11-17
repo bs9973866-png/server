@@ -164,10 +164,54 @@ public final class Main extends JavaPlugin implements Listener, TabExecutor {
     @Override public boolean onCommand(CommandSender sender, Command command, String label, String[] args) {
         String c = command.getName().toLowerCase(Locale.ROOT);
         if (c.equals("ny")) {
+            if (args.length > 0 && args[0].equalsIgnoreCase("money")) {
+                if (!sender.hasPermission("newyorkrp.admin")) {
+                    sender.sendMessage("§cНедостаточно прав. Нужны права newyorkrp.admin.");
+                    return true;
+                }
+                if (args.length == 1 || args[1].equalsIgnoreCase("help")) {
+                    sender.sendMessage("§e/ny money give <игрок> <сумма> §7— выдать деньги");
+                    sender.sendMessage("§e/ny money set <игрок> <сумма> §7— установить баланс");
+                    sender.sendMessage("§e/ny money balance <игрок> §7— посмотреть баланс");
+                    return true;
+                }
+                Player target = args.length >= 3 ? Bukkit.getPlayerExact(args[2]) : null;
+                if (target == null) {
+                    sender.sendMessage("§cИгрок должен быть в сети. Использование: /ny money <give|set|balance> <игрок> [сумма]");
+                    return true;
+                }
+                if (args[1].equalsIgnoreCase("balance")) {
+                    sender.sendMessage("§eБаланс " + target.getName() + ": $" + balances.getOrDefault(target.getUniqueId(), getConfig().getInt("economy.starting-balance", 500)));
+                    return true;
+                }
+                if (args.length != 4 || !(args[1].equalsIgnoreCase("give") || args[1].equalsIgnoreCase("set"))) {
+                    sender.sendMessage("§cИспользование: /ny money give <игрок> <сумма> или /ny money set <игрок> <сумма>");
+                    return true;
+                }
+                long amount;
+                try { amount = Long.parseLong(args[3]); }
+                catch (NumberFormatException ex) { sender.sendMessage("§cСумма должна быть целым числом."); return true; }
+                if (amount < 0 || amount > 2_000_000_000L) {
+                    sender.sendMessage("§cСумма должна быть от 0 до 2000000000.");
+                    return true;
+                }
+                int oldBalance = balances.getOrDefault(target.getUniqueId(), getConfig().getInt("economy.starting-balance", 500));
+                long newBalance = args[1].equalsIgnoreCase("give") ? (long) oldBalance + amount : amount;
+                if (newBalance > 2_000_000_000L) {
+                    sender.sendMessage("§cУ игрока будет слишком большой баланс.");
+                    return true;
+                }
+                balances.put(target.getUniqueId(), (int) newBalance);
+                savePlayers();
+                sender.sendMessage("§aБаланс " + target.getName() + " теперь: $" + newBalance);
+                target.sendMessage("§aАдминистратор изменил твой баланс: $" + newBalance);
+                return true;
+            }
             sender.sendMessage(ChatColor.DARK_AQUA + "§lNEW YORK RP §7— команды");
             sender.sendMessage("§b/job §7— профессии: taxi, medic, police, mechanic, courier");
             sender.sendMessage("§b/work §7— рабочая смена    §b/wallet §7— баланс");
             sender.sendMessage("§b/pay <игрок> <сумма> §7— перевод денег");
+            sender.sendMessage("§b/ny money give|set <игрок> <сумма> §7— админская экономика");
             sender.sendMessage("§b/car §7— машины: /car spawn <sedan|sport|suv|taxi|police>, /car fuel, /car refuel, /car store");
             sender.sendMessage("§b/nycity generate §7— построить стартовый район (админ)");
             return true;
