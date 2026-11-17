@@ -166,7 +166,15 @@ public final class Main extends JavaPlugin implements Listener, TabExecutor {
             sender.sendMessage("§b/nycity generate §7— построить стартовый район (админ)");
             return true;
         }
-        if (!(sender instanceof Player p) && !c.equals("nycity")) { sender.sendMessage("Эта команда доступна игроку."); return true; }
+        if (c.equals("nycity")) {
+            if (!(sender instanceof Player cityAdmin)) { sender.sendMessage("Эту команду нужно выполнить в игре."); return true; }
+            if (!sender.hasPermission("newyorkrp.admin")) { sender.sendMessage("§cНет прав."); return true; }
+            if (args.length==0 || !args[0].equalsIgnoreCase("generate")) { sender.sendMessage("§e/nycity generate"); return true; }
+            cityAdmin.sendMessage("§eГенерация стартового района Нью-Йорка началась. Строительство будет идти постепенно.");
+            generateCity(cityAdmin.getWorld(), cityAdmin.getLocation().getBlockX(), cityAdmin.getLocation().getBlockZ());
+            return true;
+        }
+        if (!(sender instanceof Player p)) { sender.sendMessage("Эта команда доступна игроку."); return true; }
         if (c.equals("job")) {
             if (args.length == 0) { sender.sendMessage("§bТвоя профессия: §f" + jobs.getOrDefault(p.getUniqueId(), "Безработный")); sender.sendMessage("§7/job <taxi|medic|police|mechanic|courier>"); return true; }
             Map<String,String> names = Map.of("taxi","Таксист","medic","Медик","police","Полицейский","mechanic","Механик","courier","Курьер");
@@ -208,23 +216,40 @@ public final class Main extends JavaPlugin implements Listener, TabExecutor {
     }
 
     private void generateCity(World w, int cx, int cz) {
-        // Starter district: grid streets, sidewalks, parks and varied block-built towers.
-        for (int x=-96; x<=96; x++) for (int z=-96; z<=96; z++) {
-            int ax=Math.floorMod(x+96,32), az=Math.floorMod(z+96,32);
-            if (ax<7 || az<7) continue;
-            int wx=cx+x, wz=cz+z;
-            int ground=w.getHighestBlockYAt(wx,wz);
-            // Chunk-safe scheduling is used for each column.
-            Bukkit.getScheduler().runTask(this, () -> {
-                int y=w.getHighestBlockYAt(wx,wz);
-                w.getBlockAt(wx,y,wz).setType(Material.GRAY_CONCRETE,false);
-                w.getBlockAt(wx,y-1,wz).setType(Material.STONE,false);
-            });
+        // Generate one row per tick on the main server thread.
+        final int[] row = {-96};
+        Bukkit.getScheduler().runTaskTimer(this, task -> {
+            int z = row[0];
+            for (int x=-96; x<=96; x++) {
+                int wx=cx+x, wz=cz+z, y=w.getHighestBlockYAt(wx,wz);
+                int ax=Math.floorMod(x+96,32), az=Math.floorMod(z+96,32);
+                boolean road = ax<7 || az<7;
+                w.getBlockAt(wx,y,wz).setType(road ? Material.GRAY_CONCRETE : Material.STONE_BRICKS,false);
+                if (road && ax==3 && az==3) w.getBlockAt(wx,y+1,wz).setType(Material.YELLOW_CONCRETE,false);
+                if (!road && ax==10 && az==10) buildTower(w,wx,y+1,wz,14+Math.floorMod(wx*31+wz*17,25));
+            }
+            row[0]++;
+            if (row[0] > 96) {
+                task.cancel();
+                w.setSpawnLocation(new Location(w,cx+8,w.getHighestBlockYAt(cx+8,cz+8)+1,cz+8));
+                getLogger().info("Starter New York district generated.");
+            }
+        },1L,1L);
+    }
+
+    private void buildTower(World w, int x, int y, int z, int height) {
+        int width=14;
+        for (int dy=0; dy<height; dy++) {
+            for (int dx=0; dx<width; dx++) for (int dz=0; dz<width; dz++) {
+                if (dx==0 || dz==0 || dx==width-1 || dz==width-1) {
+                    Material block=(dy%5==0) ? Material.GRAY_CONCRETE :
+                        ((dx+dz+dy)%4==0 ? Material.LIGHT_BLUE_STAINED_GLASS : Material.BLACKSTONE);
+                    w.getBlockAt(x+dx,y+dy,z+dz).setType(block,false);
+                }
+            }
         }
-        Bukkit.getScheduler().runTask(this, () -> {
-            Location spawn=new Location(w,cx+8,w.getHighestBlockYAt(cx+8,cz+8)+1,cz+8);
-            w.setSpawnLocation(spawn);
-        });
+        for (int dx=0; dx<width; dx++) for (int dz=0; dz<width; dz++)
+            w.getBlockAt(x+dx,y+height,z+dz).setType(Material.SMOOTH_STONE,false);
     }
 
     @Override public List<String> onTabComplete(CommandSender sender, Command command, String alias, String[] args) {
