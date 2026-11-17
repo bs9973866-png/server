@@ -74,7 +74,7 @@ public final class Main extends JavaPlugin implements Listener, TabExecutor {
             if (!folder.exists() && !folder.mkdirs()) throw new IOException("Cannot create resource-pack folder");
             packFile = new File(folder, "new-york-rp.zip");
             File meta = new File(folder, "pack.mcmeta");
-            Files.writeString(meta.toPath(), "{\"pack\":{\"description\":\"NEW YORK RP - City Pack\",\"pack_format\":84}}");
+            Files.writeString(meta.toPath(), "{\"pack\":{\"description\":\"NEW YORK RP - City Pack\",\"pack_format\":88}}");
             try (ZipOutputStream zip = new ZipOutputStream(new FileOutputStream(packFile))) {
                 zip.putNextEntry(new ZipEntry("pack.mcmeta"));
                 zip.write(Files.readAllBytes(meta.toPath()));
