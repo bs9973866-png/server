@@ -21,6 +21,16 @@ if not exist "paper-26.2.jar" (
   )
 )
 
+if not exist "plugins\NpcPlugin-Paper.jar" (
+  echo Installing the required human NPC plugin...
+  powershell.exe -NoProfile -ExecutionPolicy Bypass -File "%~dp0INSTALL-NPC-PLUGIN.ps1"
+  if errorlevel 1 (
+    echo [ERROR] NPC plugin installation failed. Server was not started.
+    pause
+    exit /b 1
+  )
+)
+
 if not exist "eula.txt" (
   echo eula=false>"eula.txt"
 )
