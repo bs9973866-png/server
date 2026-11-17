@@ -21,7 +21,7 @@ if not exist "paper-26.2.jar" (
   )
 )
 
-if not exist "plugins\NpcPlugin-Paper.jar" (
+if not exist "plugins\NpcPlugin-Paper-*.jar" (
   echo Installing the required human NPC plugin...
   powershell.exe -NoProfile -ExecutionPolicy Bypass -File "%~dp0INSTALL-NPC-PLUGIN.ps1"
   if errorlevel 1 (
