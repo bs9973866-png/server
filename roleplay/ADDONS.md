@@ -4,7 +4,7 @@ NewYorkRP uses the standalone **NPCS** plugin for human-style mannequin NPCs and
 
 ## Automatic NPC setup
 
-The installer downloads NPCS (Modrinth project `nWsAIWES`). NewYorkRP talks to its public API and creates six named, player-style characters around the world spawn on server startup:
+The installer downloads NpcPlugin-Paper (Modrinth project `npc-plugin`, with its official NpcApi 3.6.4 dependency). NewYorkRP talks to its public API and creates six named, player-style characters around the world spawn on server startup:
 
 - Mayor — opens the city services menu
 - Taxi dispatcher — opens the taxi job menu
