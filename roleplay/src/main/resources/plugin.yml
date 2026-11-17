@@ -7,7 +7,7 @@ description: City roleplay systems for Paper 26.2
 dependencies:
   server:
     - name: NpcPlugin-Paper
-      required: false
+      required: true
 commands:
   ny:
     description: NEW YORK RP help
