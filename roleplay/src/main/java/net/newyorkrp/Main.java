@@ -233,7 +233,7 @@ public final class Main extends JavaPlugin implements Listener, TabExecutor {
             });
             npc.setEnabled(true);
             npc.setOption(NpcOption.LOOK_AT_PLAYER, 0.8);
-            npc.save();
+            try { npc.save(); } catch (IOException ex) { getLogger().warning("Could not save NPC " + plainName + ": " + ex.getMessage()); }
             Bukkit.getScheduler().runTaskAsynchronously(this, () -> {
                 Optional<Skin> skin = Skin.fetchSkin(spec.skin());
                 if (skin.isEmpty()) {
