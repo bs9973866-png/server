@@ -35,6 +35,16 @@ if errorlevel 1 (
   exit /b 0
 )
 
+if not exist "world\\level.dat" (
+  echo Preparing the New York city world. This may take a few minutes...
+  powershell.exe -NoProfile -ExecutionPolicy Bypass -File "%~dp0INSTALL-CITY-WORLD.ps1"
+  if errorlevel 1 (
+    echo [ERROR] New York map installation failed. Server was not started.
+    pause
+    exit /b 1
+  )
+)
+
 echo Starting Paper 26.2...
 java -Xms1G -Xmx4G -jar "paper-26.2.jar" --nogui
 echo.
