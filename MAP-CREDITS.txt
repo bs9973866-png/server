@@ -1,5 +1,6 @@
-NEW YORK - Lower Manhattan 1:1 scale NYC
-Creator: Necron (with Darkvodou and LeSteuv)
-Original project: https://www.planetminecraft.com/project/new-york-lower-manhattan-1-1-scale-nyc/
-Downloaded by INSTALL-CITY-WORLD.ps1 from the original Planet Minecraft download mirror.
-All map-building credit belongs to the original creators. This map is not created or owned by NEW YORK RP.
+Midtown Manhattan, New York City — Minecraft map
+Creator: BasVerhagen
+Original project: https://www.minecraftmaps.com/49807-midtown-manhattan-new-york-city
+Archive: New-York-Midtown-Manhattan-by-BasVerhagen-2.9-MC1.19.4-ZIP.zip
+Original archive is bundled in maps/new-york-midtown-manhattan.zip.
+All map-building credit belongs to the original creator. This map is not created or owned by NEW YORK RP.
