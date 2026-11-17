@@ -7,8 +7,13 @@ $ServerRoot = $PSScriptRoot
 $WorldPath = Join-Path $ServerRoot "world"
 $MarkerPath = Join-Path $WorldPath ".newyorkrp-map-installed"
 $ArchivePath = Join-Path $ServerRoot "new-york-lower-manhattan.zip"
+$ProjectUrl = "https://www.planetminecraft.com/project/new-york-lower-manhattan-1-1-scale-nyc/"
 $DownloadUrl = "https://www.planetminecraft.com/project/new-york-lower-manhattan-1-1-scale-nyc/download/mirror/731925/"
-$Headers = @{ "User-Agent" = "NEW-YORK-RP-Server-Setup/1.0 (https://github.com/bs9973866-png/server)" }
+$Headers = @{
+    "User-Agent" = "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/131.0.0.0 Safari/537.36"
+    "Referer" = $ProjectUrl
+    "Accept" = "text/html,application/xhtml+xml,application/xml;q=0.9,application/zip,application/octet-stream,*/*;q=0.8"
+}
 
 if (Test-Path (Join-Path $WorldPath "level.dat")) {
     if (Test-Path $MarkerPath) {
@@ -22,9 +27,14 @@ if (Test-Path (Join-Path $WorldPath "level.dat")) {
 
 Write-Host "[MAP] Downloading Necron's complete 1:1 Lower Manhattan map..." -ForegroundColor Cyan
 try {
+    # Planet Minecraft protects its download mirror against non-browser requests.
     Invoke-WebRequest -Uri $DownloadUrl -Headers $Headers -OutFile $ArchivePath -MaximumRedirection 10 -TimeoutSec 1800
+    if (-not (Test-Path $ArchivePath) -or (Get-Item $ArchivePath).Length -lt 1024) {
+        throw "The download response is empty or too small to be a world archive."
+    }
 } catch {
-    throw "Could not download the New York map. Server startup cancelled so a random vanilla world is not created. Details: $($_.Exception.Message)"
+    if (Test-Path $ArchivePath) { Remove-Item $ArchivePath -Force }
+    throw "Could not download the New York map from Planet Minecraft. The site may be blocking automated downloads. Server startup cancelled so a random vanilla world is not created. Details: $($_.Exception.Message)"
 }
 
 try {
