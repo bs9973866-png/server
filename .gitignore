@@ -1,5 +1,6 @@
 # Generated server files
 BuildTools.jar
+paper-*.jar
 spigot-*.jar
 craftbukkit-*.jar
 *.log
@@ -15,7 +16,7 @@ world_the_end/
 world_*/
 playerdata/
 stats/
- advancements/
+advancements/
 
 # Local IDE / OS files
 .DS_Store
