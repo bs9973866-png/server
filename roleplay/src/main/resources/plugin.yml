@@ -8,10 +8,6 @@ commands:
   ny:
     description: NEW YORK RP help
     usage: /ny
-  nycity:
-    description: Generate the starter city district
-    usage: /nycity generate
-    permission: newyorkrp.admin
   job:
     description: Choose or view your RP profession
     usage: /job
@@ -24,9 +20,6 @@ commands:
   pay:
     description: Pay another player
     usage: /pay <player> <amount>
-  car:
-    description: Spawn and manage your roleplay car
-    usage: /car
 permissions:
   newyorkrp.admin:
     default: op
