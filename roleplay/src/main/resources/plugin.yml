@@ -4,6 +4,7 @@ main: net.newyorkrp.Main
 api-version: '26.2'
 author: NEW YORK RP
 description: City roleplay systems for Paper 26.2
+softdepend: [NPCS]
 commands:
   ny:
     description: NEW YORK RP help
