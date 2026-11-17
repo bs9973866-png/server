@@ -4,7 +4,7 @@ city:
   building-height-min: 12
   building-height-max: 42
 resource-pack:
-  enabled: true
+  enabled: false
   # For friends outside your PC, replace this with your public IP or domain.
   # Forward TCP port 8765 on your router and allow it in Windows Firewall.
   public-host: "127.0.0.1"
@@ -16,4 +16,4 @@ economy:
   work-payment-min: 45
   work-payment-max: 90
 npc:
-  spawn-on-first-start: true
+  spawn-on-first-start: false
