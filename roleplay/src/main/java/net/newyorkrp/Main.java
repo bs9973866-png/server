@@ -15,6 +15,13 @@ import org.bukkit.inventory.meta.ItemMeta;
 import org.bukkit.plugin.Plugin;
 import org.bukkit.plugin.java.JavaPlugin;
 import net.kyori.adventure.text.Component;
+import de.eisi05.npc.api.manager.NpcManager;
+import de.eisi05.npc.api.objects.NPC;
+import de.eisi05.npc.api.objects.NpcName;
+import de.eisi05.npc.api.objects.NpcOption;
+import de.eisi05.npc.api.objects.NpcSkin;
+import de.eisi05.npc.api.objects.Skin;
+import net.kyori.adventure.text.serializer.plain.PlainTextComponentSerializer;
 
 import java.io.File;
 import java.io.IOException;
@@ -60,7 +67,7 @@ public final class Main extends JavaPlugin implements Listener, TabExecutor {
             Objects.requireNonNull(getCommand(cmd)).setTabCompleter(this);
         }
         getServer().getPluginManager().registerEvents(this, this);
-        Bukkit.getScheduler().runTaskLater(this, this::createCityNpcs, 40L);
+        Bukkit.getScheduler().runTaskLater(this, this::createCityNpcs, 60L);
         getLogger().info("NEW YORK RP enabled. Automatic city NPC setup scheduled.");
     }
 
@@ -197,15 +204,14 @@ public final class Main extends JavaPlugin implements Listener, TabExecutor {
     }
 
     private void createCityNpcs() {
-        Plugin npcsPlugin = Bukkit.getPluginManager().getPlugin("NPCS");
-        if (npcsPlugin == null || !npcsPlugin.isEnabled()) {
-            getLogger().severe("NPCS plugin is missing. Run INSTALL-RP-ADDONS.bat; city NPCs cannot be created.");
+        if (!Bukkit.getPluginManager().isPluginEnabled("NpcPlugin-Paper")) {
+            getLogger().severe("NpcPlugin-Paper is missing. Install the NPC addon using INSTALL-RP-ADDONS.bat.");
             return;
         }
         if (Bukkit.getWorlds().isEmpty()) return;
         World world = Bukkit.getWorlds().get(0);
         Location base = world.getSpawnLocation();
-        List<CityNpc> cityNpcs = List.of(
+        List<CityNpc> specs = List.of(
             new CityNpc("§6Мэр Нью-Йорка", "Notch", "mayor", 0, 4),
             new CityNpc("§eДиспетчер такси", "jeb_", "taxi", 4, 0),
             new CityNpc("§cРегистратура больницы", "Alex", "medic", -4, 0),
@@ -213,44 +219,35 @@ public final class Main extends JavaPlugin implements Listener, TabExecutor {
             new CityNpc("§aЦентр занятости", "Dream", "jobs", 4, 4),
             new CityNpc("§bНачальник доставки", "Technoblade", "courier", -4, 4)
         );
-        try {
-            ClassLoader loader = npcsPlugin.getClass().getClassLoader();
-            Class<?> controllerClass = Class.forName("me.hihelloy.work.npcs.control.NpcController", true, loader);
-            Object controller = controllerClass.getMethod("get").invoke(null);
-            Class<?> managedClass = Class.forName("me.hihelloy.work.npcs.control.ManagedNpc", true, loader);
-            Class<?> triggerClass = Class.forName("me.hihelloy.work.npcs.control.TriggerType", true, loader);
-            Object rightClick = Enum.valueOf((Class<Enum>) triggerClass.asSubclass(Enum.class), "RIGHT_CLICK");
-            Method addCommand = managedClass.getMethod("addCommand", triggerClass, boolean.class, String.class);
-
-            for (CityNpc spec : cityNpcs) {
-                Location at = safeNpcLocation(world, base, spec.dx(), spec.dz());
-                Optional<?> existing = (Optional<?>) controllerClass.getMethod("find", String.class).invoke(controller, ChatColor.stripColor(spec.name()));
-                if (existing.isPresent()) {
-                    Object npc = existing.get();
-                    managedClass.getMethod("setSkin", String.class).invoke(npc, spec.skin());
-                    managedClass.getMethod("setInvulnerable", boolean.class).invoke(npc, true);
-                    managedClass.getMethod("setImmovable", boolean.class).invoke(npc, true);
-                    managedClass.getMethod("setLookAtPlayers", boolean.class).invoke(npc, true);
-                    managedClass.getMethod("teleportTo", Location.class).invoke(npc, at);
-                    continue;
+        for (CityNpc spec : specs) {
+            String plainName = ChatColor.stripColor(spec.name());
+            Optional<NPC> found = NpcManager.getList().stream()
+                .filter(npc -> plainName.equals(PlainTextComponentSerializer.plainText().serialize(npc.getName())))
+                .findFirst();
+            NPC npc = found.orElseGet(() -> new NPC(safeNpcLocation(world, base, spec.dx(), spec.dz()), NpcName.of(Component.text(spec.name()))));
+            npc.setName(NpcName.of(Component.text(spec.name())));
+            npc.setLocation(safeNpcLocation(world, base, spec.dx(), spec.dz()));
+            npc.setClickEvent(event -> {
+                Player clicker = event.getPlayer();
+                if (clicker != null) Bukkit.getScheduler().runTask(this, () -> openNpcMenu(clicker, spec.role()));
+            });
+            npc.setEnabled(true);
+            npc.setOption(NpcOption.LOOK_AT_PLAYER, 0.8);
+            npc.save();
+            Bukkit.getScheduler().runTaskAsynchronously(this, () -> {
+                Optional<Skin> skin = Skin.fetchSkin(spec.skin());
+                if (skin.isEmpty()) {
+                    getLogger().warning("Could not fetch skin for NPC " + plainName + " (" + spec.skin() + ").");
+                    return;
                 }
-                Object builder = controllerClass.getMethod("builder", String.class).invoke(controller, ChatColor.stripColor(spec.name()));
-                builder = builder.getClass().getMethod("at", Location.class).invoke(builder, at);
-                builder = builder.getClass().getMethod("skin", String.class).invoke(builder, spec.skin());
-                builder = builder.getClass().getMethod("invulnerable", boolean.class).invoke(builder, true);
-                builder = builder.getClass().getMethod("immovable", boolean.class).invoke(builder, true);
-                builder = builder.getClass().getMethod("lookAtPlayers", boolean.class).invoke(builder, true);
-                CompletableFuture<?> future = (CompletableFuture<?>) builder.getClass().getMethod("spawn").invoke(builder);
-                final String role = spec.role();
-                future.thenAccept(npc -> Bukkit.getScheduler().runTask(this, () -> {
-                    try { addCommand.invoke(npc, rightClick, true, "ny npc " + role); }
-                    catch (ReflectiveOperationException ex) { getLogger().warning("Could not attach click menu to " + spec.name() + ": " + ex.getMessage()); }
-                }));
-            }
-            getLogger().info("Automatic city NPC setup started: " + cityNpcs.size() + " human NPCs.");
-        } catch (ReflectiveOperationException ex) {
-            getLogger().severe("Could not connect to NPCS API: " + ex.getClass().getSimpleName() + ": " + ex.getMessage());
+                Bukkit.getScheduler().runTask(this, () -> {
+                    if (!isEnabled()) return;
+                    npc.setOption(NpcOption.SKIN, NpcSkin.of(skin.get()));
+                    try { npc.save(); } catch (Exception ex) { getLogger().warning("Could not save skin for " + plainName + ": " + ex.getMessage()); }
+                });
+            });
         }
+        getLogger().info("Automatic city NPC setup complete: " + specs.size() + " named human NPCs.");
     }
 
     @Override public boolean onCommand(CommandSender sender, Command command, String label, String[] args) {
