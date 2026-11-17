@@ -1,0 +1,29 @@
+name: NewYorkRP
+version: 0.1.0
+main: net.newyorkrp.Main
+api-version: '26.2'
+author: NEW YORK RP
+description: City roleplay systems for Paper 26.2
+commands:
+  ny:
+    description: NEW YORK RP help
+    usage: /ny
+  nycity:
+    description: Generate the starter city district
+    usage: /nycity generate
+    permission: newyorkrp.admin
+  job:
+    description: Choose or view your RP profession
+    usage: /job
+  work:
+    description: Complete a roleplay work shift
+    usage: /work
+  wallet:
+    description: View your wallet balance
+    usage: /wallet
+  pay:
+    description: Pay another player
+    usage: /pay <player> <amount>
+permissions:
+  newyorkrp.admin:
+    default: op
