@@ -1,0 +1,19 @@
+city:
+  generate-on-first-start: false
+  radius: 128
+  building-height-min: 12
+  building-height-max: 42
+resource-pack:
+  enabled: true
+  # For friends outside your PC, replace this with your public IP or domain.
+  # Forward TCP port 8765 on your router and allow it in Windows Firewall.
+  public-host: "127.0.0.1"
+  http-port: 8765
+  prompt: "NEW YORK RP: загрузить ресурспак города?"
+economy:
+  starting-balance: 500
+  work-cooldown-seconds: 60
+  work-payment-min: 45
+  work-payment-max: 90
+npc:
+  spawn-on-first-start: true
