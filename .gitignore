@@ -1,0 +1,23 @@
+# Generated server files
+BuildTools.jar
+spigot-*.jar
+craftbukkit-*.jar
+*.log
+logs/
+cache/
+libraries/
+work/
+
+# Worlds and player data
+world/
+world_nether/
+world_the_end/
+world_*/
+playerdata/
+stats/
+ advancements/
+
+# Local IDE / OS files
+.DS_Store
+Thumbs.db
+*.tmp
