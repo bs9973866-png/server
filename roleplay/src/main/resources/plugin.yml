@@ -24,9 +24,9 @@ commands:
   pay:
     description: Pay another player
     usage: /pay <player> <amount>
-permissions:
-  newyorkrp.admin:
-    default: op
   car:
     description: Spawn and manage your roleplay car
     usage: /car
+permissions:
+  newyorkrp.admin:
+    default: op
