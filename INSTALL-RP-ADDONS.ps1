@@ -35,7 +35,7 @@ function Install-ModrinthPlugin([string]$Project, [string]$DisplayName) {
     Write-Host "Installed $DisplayName $($Version.version_number): $Destination" -ForegroundColor Green
 }
 
-Install-ModrinthPlugin "nWsAIWES" "NPCS human NPC engine"
+Install-ModrinthPlugin "npc-plugin" "NpcPlugin-Paper human NPC engine"
 Install-ModrinthPlugin "2CrfFJyk" "Mercedex Car Plugin"
 
 Write-Host ""
