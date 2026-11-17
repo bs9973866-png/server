@@ -33,11 +33,11 @@ jobs:
 
   bundle-city-map:
     runs-on: ubuntu-latest
-    if: ${{ !hashFiles('maps/new-york-midtown-manhattan.zip') }}
     steps:
       - name: Checkout
         uses: actions/checkout@v4
       - name: Download map archive
+        if: ${{ hashFiles('maps/new-york-midtown-manhattan.zip') == '' }}
         run: |
           python -m pip install --disable-pip-version-check yt-dlp
           mkdir -p maps
@@ -45,6 +45,7 @@ jobs:
             -o maps/new-york-midtown-manhattan.zip \
             "https://www.mediafire.com/file/ijs4stj0ye1as1k/New-York-Midtown-Manhattan-by-BasVerhagen-2.9-MC1.19.4-ZIP.zip/file"
       - name: Verify Minecraft world archive
+        if: ${{ hashFiles('maps/new-york-midtown-manhattan.zip') != '' }}
         run: |
           python - <<'PY'
           import zipfile
@@ -59,9 +60,12 @@ jobs:
           print(f"Verified {p} ({p.stat().st_size} bytes)")
           PY
       - name: Commit map archive to repository
+        if: ${{ hashFiles('maps/new-york-midtown-manhattan.zip') != '' }}
         run: |
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
           git add maps/new-york-midtown-manhattan.zip
-          git commit -m "Add Midtown Manhattan city world archive"
-          git push
+          if ! git diff --cached --quiet; then
+            git commit -m "Add Midtown Manhattan city world archive"
+            git push
+          fi
