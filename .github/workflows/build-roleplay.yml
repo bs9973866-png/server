@@ -1,4 +1,4 @@
-name: Build NEW YORK RP plugin
+name: Build NEW YORK RP plugin and bundle city map
 
 on:
   push:
@@ -8,7 +8,7 @@ on:
   workflow_dispatch:
 
 permissions:
-  contents: read
+  contents: write
 
 jobs:
   build:
@@ -30,3 +30,38 @@ jobs:
           name: NewYorkRP-Paper-26.2
           path: roleplay/target/NewYorkRP.jar
           if-no-files-found: error
+
+  bundle-city-map:
+    runs-on: ubuntu-latest
+    if: ${{ !hashFiles('maps/new-york-midtown-manhattan.zip') }}
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+      - name: Download map archive
+        run: |
+          python -m pip install --disable-pip-version-check yt-dlp
+          mkdir -p maps
+          python -m yt_dlp --no-warnings --no-progress --force-overwrites \
+            -o maps/new-york-midtown-manhattan.zip \
+            "https://www.mediafire.com/file/ijs4stj0ye1as1k/New-York-Midtown-Manhattan-by-BasVerhagen-2.9-MC1.19.4-ZIP.zip/file"
+      - name: Verify Minecraft world archive
+        run: |
+          python - <<'PY'
+          import zipfile
+          from pathlib import Path
+          p = Path("maps/new-york-midtown-manhattan.zip")
+          if not p.exists() or p.stat().st_size < 1_000_000:
+              raise SystemExit("Map archive is missing or unexpectedly small")
+          with zipfile.ZipFile(p) as z:
+              worlds = [n for n in z.namelist() if n.lower().endswith("/level.dat") or n.lower() == "level.dat"]
+              if len(worlds) != 1:
+                  raise SystemExit(f"Expected exactly one level.dat, found {len(worlds)}")
+          print(f"Verified {p} ({p.stat().st_size} bytes)")
+          PY
+      - name: Commit map archive to repository
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add maps/new-york-midtown-manhattan.zip
+          git commit -m "Add Midtown Manhattan city world archive"
+          git push
